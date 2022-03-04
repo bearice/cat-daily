@@ -11,7 +11,10 @@ use std::env;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let user_id = env::var("user_id").expect("user id not found");
+    let user_id: u64 = env::var("user_id")
+        .expect("user id not found")
+        .parse()
+        .unwrap();
     let token = Token::Access {
         consumer: KeyPair::new(
             env::var("consumer_key").expect("consumer key not defined"),
