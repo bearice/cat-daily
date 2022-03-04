@@ -1,0 +1,184 @@
+use chrono::{DateTime, Datelike, Utc};
+use egg_mode::{
+    entities::{MediaEntity, MediaType},
+    error::Result,
+    tweet::Tweet,
+    KeyPair, Token,
+};
+
+use dotenv::dotenv;
+use std::env;
+
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
+    dotenv().ok();
+    let consumer = KeyPair::new(
+        env::var("consumer_key").unwrap(),
+        env::var("consumer_secret").unwrap(),
+    );
+    let access = KeyPair::new(
+        env::var("access_key").unwrap(),
+        env::var("access_secret").unwrap(),
+    );
+    let token = Token::Access { consumer, access };
+    let mut cats = vec![];
+    let mut home =
+        egg_mode::tweet::user_timeline(19898091, false, false, &token).with_page_size(200);
+    loop {
+        let (new_home, feed) = home.older(None).await?;
+        if feed.is_empty() || feed[0].created_at.year() < 2020 {
+            break;
+        }
+        println!("loaded {} tweets from {}", feed.len(), feed[0].created_at);
+        for tweet in feed.iter().filter(is_cat_tweet) {
+            let cat = CatTweet::from(tweet);
+            cats.push(cat);
+        }
+        home = new_home;
+    }
+
+    println!("{}", serde_json::to_string(&cats)?);
+    Ok(())
+}
+
+fn is_cat_tweet(tweet: &&Tweet) -> bool {
+    tweet
+        .entities
+        .hashtags
+        .iter()
+        .any(|hashtag| hashtag.text == "每日一猫")
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct CatTweet {
+    id: i64,
+    text: String,
+    created_at: DateTime<Utc>,
+    media: Vec<CatMedia>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+struct CatMedia {
+    media_type: MediaType,
+    image_url: String,
+    video_url: Option<String>,
+}
+
+impl From<&Tweet> for CatTweet {
+    fn from(tweet: &Tweet) -> Self {
+        let media = tweet
+            .extended_entities
+            .as_ref()
+            .map(|media| media.media.iter().map(CatMedia::from).collect())
+            .unwrap_or_default();
+        CatTweet {
+            id: tweet.id as i64,
+            text: tweet.text.to_string(),
+            created_at: tweet.created_at,
+            media,
+        }
+    }
+}
+
+impl From<&MediaEntity> for CatMedia {
+    fn from(media: &MediaEntity) -> Self {
+        CatMedia {
+            media_type: media.media_type,
+            image_url: media.media_url.to_string(),
+            video_url: media.video_info.as_ref().map(|info| {
+                info.variants
+                    .iter()
+                    .max_by(|x, y| x.bitrate.cmp(&y.bitrate))
+                    .map(|variant| variant.url.to_string())
+                    .unwrap()
+            }),
+        }
+    }
+}
+
+use serde::{Deserialize, Serialize};
+use yansi::Paint;
+pub fn print_tweet(tweet: &Tweet) {
+    if let Some(ref user) = tweet.user {
+        println!(
+            "{} (@{}) posted at {}",
+            Paint::blue(&user.name),
+            Paint::bold(Paint::blue(&user.screen_name)),
+            tweet.created_at.with_timezone(&chrono::Local)
+        );
+    }
+
+    // if let Some(ref screen_name) = tweet.in_reply_to_screen_name {
+    //     println!("➜ in reply to @{}", Paint::blue(screen_name));
+    // }
+
+    // if let Some(ref status) = tweet.retweeted_status {
+    //     println!("{}", Paint::red("Retweet ➜"));
+    //     print_tweet(status);
+    //     return;
+    // } else {
+    println!("{}", Paint::green(&tweet.text));
+    // }
+
+    // if let Some(source) = &tweet.source {
+    //     println!("➜ via {} ({})", source.name, source.url);
+    // }
+
+    // if let Some(ref place) = tweet.place {
+    //     println!("➜ from: {}", place.full_name);
+    // }
+
+    // if let Some(ref status) = tweet.quoted_status {
+    //     println!("{}", Paint::red("➜ Quoting the following status:"));
+    //     print_tweet(status);
+    // }
+
+    // if !tweet.entities.hashtags.is_empty() {
+    //     println!("➜ Hashtags contained in the tweet:");
+    //     for tag in &tweet.entities.hashtags {
+    //         println!("  {}", tag.text);
+    //     }
+    // }
+
+    // if !tweet.entities.symbols.is_empty() {
+    //     println!("➜ Symbols contained in the tweet:");
+    //     for tag in &tweet.entities.symbols {
+    //         println!("  {}", tag.text);
+    //     }
+    // }
+
+    // if !tweet.entities.urls.is_empty() {
+    //     println!("➜ URLs contained in the tweet:");
+    //     for url in &tweet.entities.urls {
+    //         if let Some(expanded_url) = &url.expanded_url {
+    //             println!("  {}", expanded_url);
+    //         }
+    //     }
+    // }
+
+    // if !tweet.entities.user_mentions.is_empty() {
+    //     println!("➜ Users mentioned in the tweet:");
+    //     for user in &tweet.entities.user_mentions {
+    //         println!("  {}", Paint::bold(Paint::blue(&user.screen_name)));
+    //     }
+    // }
+
+    if let Some(ref media) = tweet.extended_entities {
+        println!("➜ Media attached to the tweet:");
+        for info in &media.media {
+            println!("  A {:?}", info.media_type);
+            println!("    URL: {}", info.media_url_https);
+            if info.media_type == MediaType::Video {
+                let video = info
+                    .video_info
+                    .as_ref()
+                    .unwrap()
+                    .variants
+                    .iter()
+                    .max_by(|x, y| x.bitrate.cmp(&y.bitrate))
+                    .unwrap();
+                println!("    Video: {}", video.url);
+            }
+        }
+    }
+}
