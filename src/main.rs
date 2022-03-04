@@ -1,44 +1,44 @@
+use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, Utc};
+use dotenv::dotenv;
 use egg_mode::{
     entities::{MediaEntity, MediaType},
-    error::Result,
-    tweet::Tweet,
+    tweet::{user_timeline, Tweet},
     KeyPair, Token,
 };
-
-use dotenv::dotenv;
 use std::env;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let consumer = KeyPair::new(
-        env::var("consumer_key").unwrap(),
-        env::var("consumer_secret").unwrap(),
-    );
-    let access = KeyPair::new(
-        env::var("access_key").unwrap(),
-        env::var("access_secret").unwrap(),
-    );
-    let token = Token::Access { consumer, access };
-    let mut cats = vec![];
-    let mut home =
-        egg_mode::tweet::user_timeline(19898091, false, false, &token).with_page_size(200);
+    let user_id = env::var("user_id").unwrap();
+    let token = Token::Access {
+        consumer: KeyPair::new(
+            env::var("consumer_key").unwrap(),
+            env::var("consumer_secret").unwrap(),
+        ),
+        access: KeyPair::new(
+            env::var("access_key").unwrap(),
+            env::var("access_secret").unwrap(),
+        ),
+    };
+    let mut cats = load_cats().await.unwrap_or_default();
+    let max_id = cats.first().map(|c| c.id);
+    let mut home = user_timeline(user_id, false, false, &token).with_page_size(200);
     loop {
-        let (new_home, feed) = home.older(None).await?;
+        let (new_home, feed) = home.older(max_id).await?;
         if feed.is_empty() || feed[0].created_at.year() < 2020 {
             break;
         }
-        println!("loaded {} tweets from {}", feed.len(), feed[0].created_at);
+        eprintln!("Loaded {} tweets from {}", feed.len(), feed[0].created_at);
         for tweet in feed.iter().filter(is_cat_tweet) {
             let cat = CatTweet::from(tweet);
             cats.push(cat);
         }
         home = new_home;
     }
-
-    println!("{}", serde_json::to_string(&cats)?);
-    Ok(())
+    cats.sort_by(|a, b| b.id.cmp(&a.id));
+    save_cats(&cats).await
 }
 
 fn is_cat_tweet(tweet: &&Tweet) -> bool {
@@ -49,9 +49,20 @@ fn is_cat_tweet(tweet: &&Tweet) -> bool {
         .any(|hashtag| hashtag.text == "每日一猫")
 }
 
+async fn load_cats() -> Result<Vec<CatTweet>> {
+    let s = tokio::fs::read("cats.json").await?;
+    serde_json::from_slice(&s).context("Failed to parse cats.json")
+}
+
+async fn save_cats(cats: &[CatTweet]) -> Result<()> {
+    let s = serde_json::to_vec_pretty(cats)?;
+    tokio::fs::write("cats.json", s).await?;
+    Ok(())
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct CatTweet {
-    id: i64,
+    id: u64,
     text: String,
     created_at: DateTime<Utc>,
     media: Vec<CatMedia>,
@@ -72,8 +83,8 @@ impl From<&Tweet> for CatTweet {
             .map(|media| media.media.iter().map(CatMedia::from).collect())
             .unwrap_or_default();
         CatTweet {
-            id: tweet.id as i64,
-            text: tweet.text.to_string(),
+            id: tweet.id,
+            text: tweet.text.clone(),
             created_at: tweet.created_at,
             media,
         }
