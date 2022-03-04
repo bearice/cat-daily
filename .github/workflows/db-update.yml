@@ -1,0 +1,45 @@
+name: Update Cats
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 4 * * *"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  #run build first to populate caches
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+      - name: Update database
+        id: db-update
+        shell: bash
+        run: |
+          cat > .env <<EOF
+          ${DOT_ENV}
+          EOF
+          ./target/debug/cat-daily
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Automated Update
