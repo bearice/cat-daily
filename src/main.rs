@@ -11,15 +11,15 @@ use std::env;
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     dotenv().ok();
-    let user_id = env::var("user_id").unwrap();
+    let user_id = env::var("user_id").expect("user id not found");
     let token = Token::Access {
         consumer: KeyPair::new(
-            env::var("consumer_key").unwrap(),
-            env::var("consumer_secret").unwrap(),
+            env::var("consumer_key").expect("consumer key not defined"),
+            env::var("consumer_secret").expect("consumer secret not defined"),
         ),
         access: KeyPair::new(
-            env::var("access_key").unwrap(),
-            env::var("access_secret").unwrap(),
+            env::var("access_key").expect("access key not defined"),
+            env::var("access_secret").expect("access secret not defined"),
         ),
     };
     let mut cats = load_cats().await.unwrap_or_default();

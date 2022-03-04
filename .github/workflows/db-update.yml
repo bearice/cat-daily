@@ -36,9 +36,8 @@ jobs:
         id: db-update
         shell: bash
         run: |
-          cat > .env <<EOF
-          ${DOT_ENV}
-          EOF
+          echo $DOT_ENV | base64 > .env
+          md5sum .env
           ./target/debug/cat-daily
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:
