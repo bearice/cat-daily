@@ -3,7 +3,7 @@ name: Update Cats
 on:
   workflow_dispatch:
   schedule:
-    - cron: "10 4 * * *"
+    - cron: "0 16 * * *"
 
 env:
   CARGO_TERM_COLOR: always
