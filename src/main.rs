@@ -74,6 +74,8 @@ struct CatTweet {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct CatMedia {
     media_type: MediaType,
+    width: i32,
+    height: i32,
     image_url: String,
     video_url: Option<String>,
 }
@@ -98,6 +100,8 @@ impl From<&MediaEntity> for CatMedia {
     fn from(media: &MediaEntity) -> Self {
         CatMedia {
             media_type: media.media_type,
+            width: media.sizes.large.w,
+            height: media.sizes.large.h,
             image_url: media.media_url.to_string(),
             video_url: media.video_info.as_ref().map(|info| {
                 info.variants
