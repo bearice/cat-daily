@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8">
+    <title>Cats Daily</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style>
+        .media {
+            max-width: 100%;
+            max-height: 90%;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="jumbotron">
+                    <h1>Cats Daily</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="contents" class="container"></div>
+    <div class="container">
+        <div class="row">Bottom it here</div>
+    </div>
+    <script>
+        function renderMedia(media) {
+            if (media.media_type == "photo" || media.media_type == "animated_gif") {
+                return `<img src="${media.image_url}:large" loading="lazy" class="media" width="${media.width}" height="${media.height}" alt="cat image">`
+            } else if (media.media_type == "video") {
+                return `<video controls poster="${media.image_url}" loading="lazy" class="media" width="${media.width}" height="${media.height}">
+                            <source src="${media.video_url}" type="video/mp4">
+                        </video>`
+            } else {
+                throw "unknown media type: " + media.media_type
+            }
+        }
+
+        function renderCat(cat) {
+            return `<div class="row" data-id="${cat.id}">
+                <h3 class="display-4">
+                    ${cat.text}
+                    <span class="text-end">${new Date(cat.created_at).toLocaleDateString()}</span>
+                </h1>
+                <div class="col-md-12 text-center">
+                    ${cat.media.map(renderMedia).join("")}
+                </div>
+            </div>`
+        }
+
+        (async () => {
+            let resp = await fetch('cats.json');
+            let cats = await resp.json();
+            window.cats = cats;
+            window.cats_idx = 0;
+            function showMoreCats(count = 5) {
+                while (cats_idx < cats.length && count > 0) {
+                    $('#contents').append(renderCat(cats[cats_idx]));
+                    cats_idx++;
+                    count--;
+                }
+            }
+            $(window).on('scroll', () => {
+                if ($(window).scrollTop() >= $('#contents').offset().top + $('#contents').outerHeight() - window.innerHeight) {
+                    showMoreCats()
+                }
+            });
+            showMoreCats(5);
+        })();
+    </script>
+</body>
+
+</html>
