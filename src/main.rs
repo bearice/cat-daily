@@ -102,7 +102,7 @@ impl From<&MediaEntity> for CatMedia {
             media_type: media.media_type,
             width: media.sizes.large.w,
             height: media.sizes.large.h,
-            image_url: media.media_url.to_string(),
+            image_url: media.media_url_https.to_string(),
             video_url: media.video_info.as_ref().map(|info| {
                 info.variants
                     .iter()
