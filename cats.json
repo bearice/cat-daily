@@ -1,5 +1,19 @@
 [
   {
+    "id": 1538690040435396608,
+    "text": "#每日一猫 发现了新大陆 https://t.co/tnLHE1RtYF",
+    "created_at": "2022-06-20T01:07:47Z",
+    "media": [
+      {
+        "media_type": "video",
+        "width": 1280,
+        "height": 720,
+        "image_url": "https://pbs.twimg.com/ext_tw_video_thumb/1538689963201400832/pr/img/TKSBFRMg5w89FAAo.jpg",
+        "video_url": "https://video.twimg.com/ext_tw_video/1538689963201400832/pr/vid/1280x720/Y625byrmRM0Lx_rD.mp4?tag=12"
+      }
+    ]
+  },
+  {
     "id": 1538336743983697925,
     "text": "#每日一猫 good sleep https://t.co/6GxOJoh9ZT",
     "created_at": "2022-06-19T01:43:55Z",
