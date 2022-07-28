@@ -1,7 +1,10 @@
 name: Update Cats
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch: {}
   schedule:
     - cron: "0 16 * * *"
 
@@ -33,6 +36,7 @@ jobs:
         with:
           command: build
       - name: Update database
+        if: contains(['schedule','workflow_dispatch'], github.event_name)
         id: db-update
         shell: bash
         run: |
@@ -40,5 +44,6 @@ jobs:
           md5sum .env
           ./target/debug/cat-daily
       - uses: stefanzweifel/git-auto-commit-action@v4
+        if: contains(['schedule','workflow_dispatch'], github.event_name)
         with:
           commit_message: Automated Update
