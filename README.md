@@ -6,7 +6,7 @@
 页面通过Cloudflare Pages提供服务
 
 # cat-daily
-[The Cat of the Day Compilation](https://xn--z7x.xn--w7u347d.com/)
+[The Cat of the Day Compilation](https://cat-daily.icybear.net/)
 
 By crawling my [Twitter](https://twitter.com/bearice) timeline daily via Github Action and find all pictures/videos with `#每日一猫` (cat of the day) and update it to `cats.json`
 
