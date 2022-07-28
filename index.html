@@ -47,10 +47,10 @@
             }
         }
 
-        function renderCat(cat) {
+        function renderCat(cat,cat_id) {
             return `<div class="row" data-id="${cat.id}">
                 <h3 class="display-4">
-                    ${cat.text}
+                    #${cat_id}. ${cat.text}
                     <span class="text-end">${new Date(cat.created_at).toLocaleDateString()}</span>
                 </h1>
                 <div class="col-md-12 text-center">
@@ -66,7 +66,8 @@
             window.cats_idx = 0;
             function showMoreCats(count = 5) {
                 while (cats_idx < cats.length && count > 0) {
-                    $('#contents').append(renderCat(cats[cats_idx]));
+                    let cat_id = cats.len - cats_idx;
+                    $('#contents').append(renderCat(cats[cats_idx],cat_id));
                     cats_idx++;
                     count--;
                 }
