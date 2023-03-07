@@ -50,6 +50,7 @@ fn is_cat_tweet(tweet: &&Tweet) -> bool {
         .hashtags
         .iter()
         .any(|hashtag| hashtag.text == "每日一猫")
+        && tweet.entities.media.is_some()
 }
 
 async fn load_cats() -> Result<Vec<CatTweet>> {
