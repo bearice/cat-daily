@@ -5,8 +5,7 @@ on:
     branches:
       - master
   workflow_dispatch: {}
-  schedule:
-    - cron: "0 16 * * *"
+
 
 env:
   CARGO_TERM_COLOR: always
